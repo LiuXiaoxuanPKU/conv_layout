@@ -193,7 +193,7 @@ int main(int argc, char const *argv[]) {
 
   int copy_cuda_cpu_repeat_times = 1000;
   float* h_output;
-  for (int i = 0;  i < repeat_times; i++) {
+  for (int i = 0;  i < copy_cuda_cpu_repeat_times; i++) {
     h_output = new float[image_bytes];
     cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
     // Do something with h_output ...
@@ -202,7 +202,7 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventRecord(stop, 0) );
   HANDLE_ERROR( cudaEventSynchronize(stop) );
   HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
-  std::cout << "[GPU]Run " << loop_times << " cuda to cpu, run " << time << " ms\n";
+  std::cout << "[GPU]Run " << copy_cuda_cpu_repeat_times << " cuda to cpu, run " << time << " ms\n";
 
   delete[] h_output;
   cudaFree(d_kernel);
