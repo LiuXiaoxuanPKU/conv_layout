@@ -194,9 +194,8 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  h_output = new float[image_bytes];
+  float* h_output = new float[image_bytes];
   int copy_cuda_cpu_repeat_times = 100000;
-  float* h_output;
   for (int i = 0;  i < copy_cuda_cpu_repeat_times; i++) {
     cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
     // Do something with h_output ...
