@@ -94,13 +94,13 @@ double conv_format(engine::kind engine_kind,
   auto conv = convolution_forward(conv_pd);
 
   std::clock_t start = std::clock();
-  for (int i = 0; i < repeate_times; i++) {
+  for (int i = 0; i < repeat_times; i++) {
     conv.execute(s, {{DNNL_ARG_SRC, conv_src_mem}, {DNNL_ARG_WEIGHTS, conv_weights_mem},
                     {DNNL_ARG_DST, conv_dst_mem}});
     s.wait();
   }
 
-  double throughput = N * IC * H * W * sizeof(float) * repeate_times * 1e-9 / ((std::clock() - start) * 1.0 / CLOCKS_PER_SEC); 
+  double throughput = N * IC * H * W * sizeof(float) * repeat_times * 1e-9 / ((std::clock() - start) * 1.0 / CLOCKS_PER_SEC); 
   return throughput;
 }
 
