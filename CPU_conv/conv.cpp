@@ -101,6 +101,9 @@ double conv_format(engine::kind engine_kind,
 int main(int argc, char **argv) {
   int repeat_times = 1000;
   double optimal_duration = 0;
+  mf input_tag = mf::nchw;
+  mf dst_tag = mf::nchw;
+  mf wei_tag = mf::nhwc;
   for (int i = 0; i < repeat_times; i++) {
     optimal_duration += conv_format(parse_engine_kind(argc, argv),
                                           input_tag, wei_tag, dst_tag,
