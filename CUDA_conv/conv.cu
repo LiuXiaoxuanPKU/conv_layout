@@ -25,8 +25,8 @@ int main(int argc, char const *argv[]) {
   cudnnHandle_t cudnn; // serve as a context object
   checkCUDNN(cudnnCreate(&cudnn));
 
-  const int height = 380;
-  const int width = 380;
+  const int height = 1000;
+  const int width = 1000;
 
   cudnnTensorDescriptor_t input_descriptor;
   checkCUDNN(cudnnCreateTensorDescriptor(&input_descriptor));
@@ -136,11 +136,12 @@ int main(int argc, char const *argv[]) {
   float time;
   cudaEvent_t start, stop;
 
+  std::cout << "Transfer size: " << image_bytes * 1e-6 << " MB\n";
   HANDLE_ERROR( cudaEventCreate(&start) );
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  int copy_cpu_cuda_repeat_times = 1000;
+  int copy_cpu_cuda_repeat_times = 1;
   for (int i = 0; i < copy_cpu_cuda_repeat_times; i++) {
     cudaMemcpy(d_kernel, h_kernel, sizeof(h_kernel), cudaMemcpyHostToDevice);
   }
@@ -160,7 +161,7 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  int conv_loop_times = 10000;
+  int conv_loop_times = 1;
   for (int i = 0; i < conv_loop_times; i++) {
     const float alpha = 1, beta = 0;
     checkCUDNN(cudnnConvolutionForward(cudnn,
@@ -193,7 +194,7 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  int copy_cuda_cpu_repeat_times = 1000;
+  int copy_cuda_cpu_repeat_times = 1;
   float* h_output;
   for (int i = 0;  i < copy_cuda_cpu_repeat_times; i++) {
     h_output = new float[image_bytes];
