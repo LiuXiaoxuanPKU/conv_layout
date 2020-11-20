@@ -11,6 +11,16 @@
   } \
 }
 
+#define HANDLE_ERROR(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
 int main(int argc, char const *argv[]) {
   cudnnHandle_t cudnn; // serve as a context object
   checkCUDNN(cudnnCreate(&cudnn));
@@ -64,7 +74,7 @@ int main(int argc, char const *argv[]) {
   int algo_cnt;
   cudnnConvolutionFwdAlgo_t convolution_algorithm;
   checkCUDNN(
-      requestedAlgoCount(cudnn,
+      cudnnFindConvolutionForwardAlgorithm(cudnn,
             input_descriptor,
             kernel_descriptor,
             convolution_descriptor,
@@ -128,9 +138,9 @@ int main(int argc, char const *argv[]) {
   float time;
   cudaEvent_t start, stop;
 
-  checkCUDNN( cudaEventCreate(&start) );
-  checkCUDNN( cudaEventCreate(&stop) );
-  checkCUDNN( cudaEventRecord(start, 0) );
+  HANDLE_ERROR( cudaEventCreate(&start) );
+  HANDLE_ERROR( cudaEventCreate(&stop) );
+  HANDLE_ERROR( cudaEventRecord(start, 0) );
 
   int loop_times = 10000;
   for (int i = 0; i < loop_times; i++) {
@@ -148,14 +158,14 @@ int main(int argc, char const *argv[]) {
                                     &beta,
                                     output_descriptor,
                                     d_output));
-    float* h_output = new float[image_bytes];
   }
 
-  checkCUDNN( cudaEventRecord(stop, 0) );
-  checkCUDNN( cudaEventSynchronize(stop) );
-  checkCUDNN( cudaEventElapsedTime(&time, start, stop) );
+  HANDLE_ERROR( cudaEventRecord(stop, 0) );
+  HANDLE_ERROR( cudaEventSynchronize(stop) );
+  HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
 
   std::cout << "Run " << loop_times << " convolutions, run " << time << " ms";
+  float* h_output = new float[image_bytes];
   cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
   // Do something with h_output ...
 
