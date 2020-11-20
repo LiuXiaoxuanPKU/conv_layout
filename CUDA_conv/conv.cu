@@ -60,17 +60,21 @@ int main(int argc, char const *argv[]) {
                                            /*mode=*/CUDNN_CROSS_CORRELATION,
                                            /*computeType=*/CUDNN_DATA_FLOAT));
   
-  cudnnConvolutionFwdAlgo_t convolution_algorithm = CUDNN_CONVOLUTION_FWD_ALGO_GEMM;
-/* checkCUDNN(
-      cudnnGetConvolutionForwardAlgorithm_v7(cudnn,
+  cudnnConvolutionFwdAlgoPerf_t perf;
+  int algo_cnt;
+  cudnnConvolutionFwdAlgo_t convolution_algorithm;
+  checkCUDNN(
+      requestedAlgoCount(cudnn,
             input_descriptor,
             kernel_descriptor,
             convolution_descriptor,
             output_descriptor,
-            0,
-*///            /*memoryLimitInBytes*/0,
-//            &convolution_algorithm));
+            10, /*requestedAlgoCount*/
+            &algo_cnt,
+            &perf));
 
+  convolution_algorithm = perf.algo;
+  
   // In memory constrained environments, we may prefer CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
   
   size_t workspace_bytes = 0;
@@ -120,23 +124,39 @@ int main(int argc, char const *argv[]) {
   cudaMalloc(&d_kernel, sizeof(h_kernel));
   cudaMemcpy(d_kernel, h_kernel, sizeof(h_kernel), cudaMemcpyHostToDevice);
 
-  const float alpha = 1, beta = 0;
-  checkCUDNN(cudnnConvolutionForward(cudnn,
-                                   &alpha,
-                                   input_descriptor,
-                                   d_input,
-                                   kernel_descriptor,
-                                   d_kernel,
-                                   convolution_descriptor,
-                                   convolution_algorithm,
-                                   d_workspace,
-                                   workspace_bytes,
-                                   &beta,
-                                   output_descriptor,
-                                   d_output));
-  float* h_output = new float[image_bytes];
-  cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
 
+  float time;
+  cudaEvent_t start, stop;
+
+  checkCUDNN( cudaEventCreate(&start) );
+  checkCUDNN( cudaEventCreate(&stop) );
+  checkCUDNN( cudaEventRecord(start, 0) );
+
+  int loop_times = 10000;
+  for (int i = 0; i < loop_times; i++) {
+    const float alpha = 1, beta = 0;
+    checkCUDNN(cudnnConvolutionForward(cudnn,
+                                    &alpha,
+                                    input_descriptor,
+                                    d_input,
+                                    kernel_descriptor,
+                                    d_kernel,
+                                    convolution_descriptor,
+                                    convolution_algorithm,
+                                    d_workspace,
+                                    workspace_bytes,
+                                    &beta,
+                                    output_descriptor,
+                                    d_output));
+    float* h_output = new float[image_bytes];
+  }
+
+  checkCUDNN( cudaEventRecord(stop, 0) );
+  checkCUDNN( cudaEventSynchronize(stop) );
+  checkCUDNN( cudaEventElapsedTime(&time, start, stop) );
+
+  std::cout << "Run " << loop_times << " convolutions, run " << time << " ms";
+  cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
   // Do something with h_output ...
 
   delete[] h_output;
