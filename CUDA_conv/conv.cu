@@ -141,7 +141,7 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  int copy_cpu_cuda_repeat_times = 1;
+  int copy_cpu_cuda_repeat_times = 100000;
   for (int i = 0; i < copy_cpu_cuda_repeat_times; i++) {
     cudaMemcpy(d_kernel, h_kernel, sizeof(h_kernel), cudaMemcpyHostToDevice);
   }
@@ -161,7 +161,7 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  int conv_loop_times = 1;
+  int conv_loop_times = 100000;
   for (int i = 0; i < conv_loop_times; i++) {
     const float alpha = 1, beta = 0;
     checkCUDNN(cudnnConvolutionForward(cudnn,
@@ -194,10 +194,10 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  int copy_cuda_cpu_repeat_times = 1;
+  h_output = new float[image_bytes];
+  int copy_cuda_cpu_repeat_times = 100000;
   float* h_output;
   for (int i = 0;  i < copy_cuda_cpu_repeat_times; i++) {
-    h_output = new float[image_bytes];
     cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
     // Do something with h_output ...
   }
