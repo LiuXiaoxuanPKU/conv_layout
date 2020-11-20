@@ -14,7 +14,7 @@ typedef memory::format_tag mf;
 // Try to find cases where
 // conv on suboptimal layout < reshape + conv on optimal layout
 
-const int N = 1, H = 14, W = 14, IC = 128, OC = 256, KH = 3, KW = 3;
+const int N = 1, H = 200, W = 200, IC = 3, OC = 3, KH = 3, KW = 3;
 std::vector<mf> tags = {mf::nchw};
 std::vector<mf> wei_tags = {mf::nchw};
 
@@ -24,11 +24,11 @@ double conv_format(engine::kind engine_kind,
                    mf dst_f,
                    mf conv_input_f, // input memory format for conv
                    mf conv_wei_f,
-                   mf conv_dst_f) {
+                   mf conv_dst_f,
+                   int repeat_times) {
   engine eng(engine_kind, 0);
   stream s(eng);
 
-  std::clock_t start = std::clock();
 
   auto conv_src_md = memory::desc({N, IC, H, W}, memory::data_type::f32, conv_input_f);
   auto conv_weights_md = memory::desc({OC, IC, KH, KW}, memory::data_type::f32, conv_wei_f);
@@ -90,25 +90,29 @@ double conv_format(engine::kind engine_kind,
   }
 
   auto conv_scratchpad_mem = memory(conv_pd.scratchpad_desc(), eng);
+  
   auto conv = convolution_forward(conv_pd);
-  conv.execute(s, {{DNNL_ARG_SRC, conv_src_mem}, {DNNL_ARG_WEIGHTS, conv_weights_mem},
-                   {DNNL_ARG_DST, conv_dst_mem}});
-  s.wait();
 
-  return std::clock() - start;
+  std::clock_t start = std::clock();
+  for (int i = 0; i < repeate_times; i++) {
+    conv.execute(s, {{DNNL_ARG_SRC, conv_src_mem}, {DNNL_ARG_WEIGHTS, conv_weights_mem},
+                    {DNNL_ARG_DST, conv_dst_mem}});
+    s.wait();
+  }
+
+  double throughput = N * IC * H * W * sizeof(float) * repeate_times * 1e-9 / ((std::clock() - start) * 1.0 / CLOCKS_PER_SEC); 
+  return throughput;
 }
 
 int main(int argc, char **argv) {
   int repeat_times = 1000;
-  double optimal_duration = 0;
   mf input_tag = mf::nchw;
   mf dst_tag = mf::nchw;
   mf wei_tag = mf::nhwc;
-  for (int i = 0; i < repeat_times; i++) {
-    optimal_duration += conv_format(parse_engine_kind(argc, argv),
+  double throughput = conv_format(parse_engine_kind(argc, argv),
                                           input_tag, wei_tag, dst_tag,
                                           mf::any,
-                                          mf::any, mf::any);
-  }
-  std::cout << "[CPU]Run " << repeat_times << " conv, spend " << optimal_duration * 1.0 / CLOCKS_PER_SEC << " s\n";
+                                          mf::any, mf::any, repeat_times);
+  std::cout << "[CPU]Run " << repeat_times 
+            << " conv, throughput " << throughput << " GB/s\n";
 }
