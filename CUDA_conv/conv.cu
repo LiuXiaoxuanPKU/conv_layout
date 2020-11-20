@@ -164,7 +164,7 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventSynchronize(stop) );
   HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
 
-  std::cout << "Run " << loop_times << " convolutions, run " << time << " ms";
+  std::cout << "[GPU]Run " << loop_times << " convolutions, run " << time << " ms\n";
   float* h_output = new float[image_bytes];
   cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
   // Do something with h_output ...
