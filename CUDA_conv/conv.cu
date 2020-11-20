@@ -149,7 +149,8 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventSynchronize(stop) );
   HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
 
-  std::cout << "[GPU]Run " << copy_cpu_cuda_repeat_times << " cpu to cuda, run " << time << " ms\n";
+  std::cout << "[GPU]Run " << copy_cpu_cuda_repeat_times 
+            << " cpu to cuda, run " << image_bytes * 1e-6 / time * 1.0 /  copy_cpu_cuda_repeat_times<< " GB/s\n";
 
   time = 0;
   start = 0;
@@ -181,7 +182,8 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventSynchronize(stop) );
   HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
 
-  std::cout << "[GPU]Run " << conv_loop_times << " convolutions, run " << time << " ms\n";
+  std::cout << "[GPU]Run " << conv_loop_times 
+            << " convolutions, run " << image_bytes * 1e-6 / time * 1.0 / conv_loop_times << " GB/s\n";
 
   time = 0;
   start = 0;
@@ -202,7 +204,8 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventRecord(stop, 0) );
   HANDLE_ERROR( cudaEventSynchronize(stop) );
   HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
-  std::cout << "[GPU]Run " << copy_cuda_cpu_repeat_times << " cuda to cpu, run " << time << " ms\n";
+  std::cout << "[GPU]Run " << copy_cuda_cpu_repeat_times 
+            << " cuda to cpu, run " << image_bytes * 1e-6 / time * 1.0 / copy_cuda_cpu_repeat_times << " GB/s\n";
 
   delete[] h_output;
   cudaFree(d_kernel);
