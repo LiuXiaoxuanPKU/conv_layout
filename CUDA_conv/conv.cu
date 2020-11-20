@@ -165,9 +165,22 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
 
   std::cout << "[GPU]Run " << loop_times << " convolutions, run " << time << " ms\n";
-  float* h_output = new float[image_bytes];
-  cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
-  // Do something with h_output ...
+
+  // Memory copy overhead
+  HANDLE_ERROR( cudaEventCreate(&start) );
+  HANDLE_ERROR( cudaEventCreate(&stop) );
+  HANDLE_ERROR( cudaEventRecord(start, 0) );
+
+  int repeat_times = 1000;
+  for (int i = 0;  i < repeat_times; i++) {
+    float* h_output = new float[image_bytes];
+    cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
+    // Do something with h_output ...
+  }
+
+  HANDLE_ERROR( cudaEventRecord(stop, 0) );
+  HANDLE_ERROR( cudaEventSynchronize(stop) );
+  HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
 
   delete[] h_output;
   cudaFree(d_kernel);
