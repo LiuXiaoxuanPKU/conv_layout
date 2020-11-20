@@ -141,7 +141,7 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
   int copy_cpu_cuda_repeat_times = 1000;
-  for (int i = 0; i < copy_cpu_cuda_repeat_times) {
+  for (int i = 0; i < copy_cpu_cuda_repeat_times; i++) {
     cudaMemcpy(d_kernel, h_kernel, sizeof(h_kernel), cudaMemcpyHostToDevice);
   }
 
