@@ -25,8 +25,8 @@ int main(int argc, char const *argv[]) {
   cudnnHandle_t cudnn; // serve as a context object
   checkCUDNN(cudnnCreate(&cudnn));
 
-  const int height = 1000;
-  const int width = 1000;
+  const int height = 200;
+  const int width = 200;
 
   cudnnTensorDescriptor_t input_descriptor;
   checkCUDNN(cudnnCreateTensorDescriptor(&input_descriptor));
@@ -189,12 +189,13 @@ int main(int argc, char const *argv[]) {
   time = 0;
   start = 0;
   stop = 0;
+
+  float* h_output = new float[image_bytes];
   // Memory copy overhead
   HANDLE_ERROR( cudaEventCreate(&start) );
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  float* h_output = new float[image_bytes];
   int copy_cuda_cpu_repeat_times = 100000;
   for (int i = 0;  i < copy_cuda_cpu_repeat_times; i++) {
     cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
