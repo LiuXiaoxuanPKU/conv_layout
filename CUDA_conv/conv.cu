@@ -182,6 +182,7 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventRecord(stop, 0) );
   HANDLE_ERROR( cudaEventSynchronize(stop) );
   HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
+  std::cout << "[GPU]Run " << loop_times << " memory copy, run " << time << " ms\n";
 
   delete[] h_output;
   cudaFree(d_kernel);
