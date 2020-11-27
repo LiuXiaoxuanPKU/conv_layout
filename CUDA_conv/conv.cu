@@ -25,29 +25,31 @@ int main(int argc, char const *argv[]) {
   cudnnHandle_t cudnn; // serve as a context object
   checkCUDNN(cudnnCreate(&cudnn));
 
-  const int height = 200;
-  const int width = 200;
+  const int height = 1000;
+  const int width = 1000;
 
   cudnnTensorDescriptor_t input_descriptor;
+  std::cout << "Before input descriptor" << std::endl;
   checkCUDNN(cudnnCreateTensorDescriptor(&input_descriptor));
   checkCUDNN(cudnnSetTensor4dDescriptor(input_descriptor,
-          /*format*/CUDNN_TENSOR_NHWC,
+          /*format*/CUDNN_TENSOR_NCHW,
           /*dataType*/CUDNN_DATA_FLOAT,
           /*batch_size*/1,
           /*channels*/3,
           /*image_height*/height,
           /*image_width*/width));
-
+  std::cout << "Finish create input descriptor" << std::endl;
   cudnnTensorDescriptor_t output_descriptor;
   checkCUDNN(cudnnCreateTensorDescriptor(&output_descriptor));
   checkCUDNN(cudnnSetTensor4dDescriptor(output_descriptor,
-          /*format*/CUDNN_TENSOR_NHWC,
+          /*format*/CUDNN_TENSOR_NCHW,
           /*dataType*/CUDNN_DATA_FLOAT,
           /*batch_size*/1,
           /*channels*/3,
           /*image_height*/height,
           /*image_width*/width));
 
+  std::cout << "Finish create output descriptor" << std::endl;
   cudnnFilterDescriptor_t kernel_descriptor;
   checkCUDNN(cudnnCreateFilterDescriptor(&kernel_descriptor));
   checkCUDNN(cudnnSetFilter4dDescriptor(kernel_descriptor,
@@ -58,6 +60,7 @@ int main(int argc, char const *argv[]) {
           /*kernel_height*/3,
           /*kernel_width*/3));
 
+  std::cout << "Finish create filter descriptor" << std::endl;
   cudnnConvolutionDescriptor_t convolution_descriptor;
   checkCUDNN(cudnnCreateConvolutionDescriptor(&convolution_descriptor));
   checkCUDNN(cudnnSetConvolution2dDescriptor(convolution_descriptor,
@@ -70,6 +73,7 @@ int main(int argc, char const *argv[]) {
                                            /*mode=*/CUDNN_CROSS_CORRELATION,
                                            /*computeType=*/CUDNN_DATA_FLOAT));
   
+  std::cout << "Finish create conv descriptor" << std::endl;
   cudnnConvolutionFwdAlgoPerf_t perf;
   int algo_cnt;
   cudnnConvolutionFwdAlgo_t convolution_algorithm;
@@ -104,15 +108,18 @@ int main(int argc, char const *argv[]) {
 
   int image_bytes = 1 * 3 * height * width * sizeof(float);
 
-  float array[1][height][width][3];
+//  float array[1][height][width][3];
+  float* array = new float[3 * height * width];
+  float* h_output = new float[3 * height * width];
+
   float* d_input{nullptr};
   cudaMalloc(&d_input, image_bytes);
-  cudaMemcpy(d_input, array, image_bytes, cudaMemcpyHostToDevice);
+  cudaMemset(d_input, 0, image_bytes);
 
   float* d_output{nullptr};
   cudaMalloc(&d_output, image_bytes);
   cudaMemset(d_output, 0, image_bytes);  
-
+  
   const float kernel_template[3][3] = {
     {1, 1, 1},
     {1, -8, 1},
@@ -129,9 +136,10 @@ int main(int argc, char const *argv[]) {
       }
     }
   }
-
+  std::cout << "Sizeof of kernel " << sizeof(h_kernel) << std::endl;
   float* d_kernel{nullptr};
-  cudaMalloc(&d_kernel, sizeof(h_kernel));
+  cudaMalloc(&d_kernel, sizeof(float) * 3 * 3 * 3 * 3);
+  cudaMemcpy(d_kernel, h_kernel, sizeof(h_kernel), cudaMemcpyHostToDevice);
 
   float time;
   cudaEvent_t start, stop;
@@ -141,14 +149,16 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  int copy_cpu_cuda_repeat_times = 100000;
+  int copy_cpu_cuda_repeat_times = 10000;
   for (int i = 0; i < copy_cpu_cuda_repeat_times; i++) {
-    cudaMemcpy(d_kernel, h_kernel, sizeof(h_kernel), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_input, array, image_bytes, cudaMemcpyHostToDevice);
   }
 
   HANDLE_ERROR( cudaEventRecord(stop, 0) );
   HANDLE_ERROR( cudaEventSynchronize(stop) );
   HANDLE_ERROR( cudaEventElapsedTime(&time, start, stop) );
+
+  delete[] array;
 
   std::cout << "[GPU]Run " << copy_cpu_cuda_repeat_times 
             << " cpu to cuda, run " << image_bytes * 1e-6 * copy_cpu_cuda_repeat_times / time * 1.0 << " GB/s\n";
@@ -161,7 +171,7 @@ int main(int argc, char const *argv[]) {
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  int conv_loop_times = 100000;
+  int conv_loop_times = 10000;
   for (int i = 0; i < conv_loop_times; i++) {
     const float alpha = 1, beta = 0;
     checkCUDNN(cudnnConvolutionForward(cudnn,
@@ -190,13 +200,12 @@ int main(int argc, char const *argv[]) {
   start = 0;
   stop = 0;
 
-  float* h_output = new float[image_bytes];
   // Memory copy overhead
   HANDLE_ERROR( cudaEventCreate(&start) );
   HANDLE_ERROR( cudaEventCreate(&stop) );
   HANDLE_ERROR( cudaEventRecord(start, 0) );
 
-  int copy_cuda_cpu_repeat_times = 100000;
+  int copy_cuda_cpu_repeat_times = 10000;
   for (int i = 0;  i < copy_cuda_cpu_repeat_times; i++) {
     cudaMemcpy(h_output, d_output, image_bytes, cudaMemcpyDeviceToHost);
     // Do something with h_output ...
@@ -220,4 +229,5 @@ int main(int argc, char const *argv[]) {
   cudnnDestroyConvolutionDescriptor(convolution_descriptor);
 
   cudnnDestroy(cudnn);
+
 }
